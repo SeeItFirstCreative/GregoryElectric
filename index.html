@@ -14,76 +14,158 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0c0d}
 <script>
 (()=>{
   const review=document.getElementById('review');
-  const PATCH_ID='ge-live-current-mobile-format-v1';
+  const PATCH_ID='ge-live-current-mobile-format-v2';
   const MOBILE_CSS=`
 @media (max-width:680px){
   html,body{max-width:100%!important;overflow-x:hidden!important}
-  .wrap{width:calc(100% - 24px)!important}
-  .topbar{height:64px!important}
-  .mobile-drawer{top:64px!important}
-  .topbar .wrap{gap:10px!important}
-  .mark{width:38px!important;height:38px!important;flex:0 0 38px!important}
-  .brand-copy b{font-size:13px!important}
-  .brand-copy small{font-size:7px!important;letter-spacing:.08em!important}
-  .hero{padding-top:64px!important;min-height:0!important;overflow:hidden!important}
-  .hero:before{inset:64px 0 0!important}
-  .hero-grid{min-height:0!important}
-  .hero-left{min-height:560px!important;padding:40px 16px 30px!important}
-  .hero h1{font-size:clamp(42px,12vw,50px)!important;line-height:.88!important;margin:18px 0 16px!important;max-width:100%!important}
+  *,*:before,*:after{box-sizing:border-box}
+  .container{width:calc(100% - 28px)!important;max-width:100%!important}
+
+  /* Live Current navigation */
+  .nav{max-width:100%!important;overflow:hidden!important}
+  .nav-inner{height:66px!important;gap:10px!important;min-width:0!important}
+  .logo{gap:9px!important;min-width:0!important}
+  .logo-mark{width:38px!important;height:38px!important;flex:0 0 38px!important;font-size:21px!important}
+  .logo-copy{min-width:0!important}
+  .logo-copy b{font-size:13px!important;letter-spacing:2px!important;white-space:nowrap!important}
+  .logo-copy small{font-size:6px!important;letter-spacing:1.8px!important;white-space:nowrap!important}
+  .nav-call{display:none!important}
+  .menu{display:block!important;margin-left:auto!important;flex:0 0 auto!important}
+
+  /* Hero: preserve the approved split architecture, but make the first screen fit a phone */
+  .hero{max-width:100%!important;overflow:hidden!important}
+  .hero-grid{grid-template-columns:1fr!important;min-height:0!important;max-width:100%!important}
+  .hero-main{min-height:610px!important;max-width:100%!important;overflow:hidden!important}
+  .hero-img{transform:scale(1.02)!important}
+  .hero-copy{left:18px!important;right:18px!important;bottom:32px!important;max-width:none!important;width:auto!important}
+  .hero-bolt{font-size:62px!important;left:0!important;top:8px!important}
+  .hero h1{font-size:clamp(43px,12.4vw,50px)!important;line-height:.95!important;padding-left:36px!important;max-width:100%!important;margin-bottom:0!important}
   .hero h1 .hero-line{white-space:normal!important}
-  .hero-copy{max-width:100%!important;font-size:13px!important;line-height:1.55!important}
-  .hero-actions{display:grid!important;grid-template-columns:1fr!important;gap:9px!important;margin-top:20px!important}
-  .hero-actions .btn{width:100%!important;min-width:0!important;justify-content:center!important}
-  .hero-meta{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:11px 12px!important;margin-top:22px!important}
-  .hero-meta div{min-width:0!important;padding-right:0!important}
-  .hero-meta div:last-child{grid-column:1/-1!important}
-  .power-line{right:10px!important}
-  .hero-circuit{bottom:12px!important}
-  .console,.system,.field,.process{padding:50px 0!important}
-  .contact{padding-top:50px!important}
-  .console-head,.system-head,.field-head,.process-head{margin-bottom:22px!important}
-  .console h2,.system h2,.field h2,.proof h2,.process h2,.contact h2{font-size:clamp(34px,10.5vw,42px)!important;line-height:.96!important}
-  .console-head p,.system-head p,.field-head p,.process-head p{margin-top:12px!important}
-  .console-shell,.system-shell,.proof-shell,.contact-shell{grid-template-columns:1fr!important;max-width:100%!important}
-  .console-options{grid-template-columns:1fr!important}
-  .console-option{border-right:0!important}
-  .console-output{padding:26px 16px!important;min-width:0!important}
-  .system-map{min-height:400px!important;padding:14px!important;max-width:100%!important;overflow:hidden!important}
-  .distribution{height:330px!important;max-width:100%!important}
-  .system-step{grid-template-columns:42px minmax(0,1fr)!important;padding:17px 8px!important}
-  .system-step h3{font-size:24px!important}
-  .field-grid{display:grid!important;grid-template-columns:1fr!important;grid-template-rows:none!important;gap:12px!important;max-width:100%!important}
-  .work-card,.work-card.tall,.work-card.wide{grid-column:auto!important;grid-row:auto!important;min-height:270px!important;max-width:100%!important}
-  .work-card{clip-path:none!important;transform:none!important}
-  .proof-board,.review-board{padding:46px 16px!important}
-  .metrics{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .metric{min-width:0!important;min-height:112px!important;padding:15px!important}
-  .process-track{grid-template-columns:1fr!important;max-width:100%!important}
-  .process-progress{display:none!important}
-  .phase{min-height:0!important;padding:18px 0 18px 22px!important}
-  .contact-meta,.form-grid{grid-template-columns:1fr!important}
-  .request{padding:16px!important;max-width:100%!important}
-  .job-tabs{grid-template-columns:1fr 1fr!important}
-  textarea.field-in,.submit{grid-column:auto!important}
-  .service-bus-inner{width:calc(100% - 24px)!important}
-  .bus-circuits{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .bus-circuit{min-width:0!important}
-  .footer{margin-top:44px!important;padding-bottom:76px!important}
-  .footer .wrap{padding:20px 0!important}
-  .hero,.service-bus,.console,.system,.field,.proof,.process,.contact,.footer,
-  .console-shell,.system-shell,.field-grid,.proof-shell,.process-track,.contact-shell{max-width:100%!important;overflow-x:hidden!important}
+  .hero-sub{max-width:100%!important;padding-left:36px!important;margin:20px 0 18px!important;font-size:13px!important;line-height:1.58!important}
+  .hero-actions{padding-left:36px!important;display:grid!important;grid-template-columns:1fr!important;gap:9px!important;max-width:100%!important}
+  .hero-actions .btn{width:100%!important;min-width:0!important;padding-left:14px!important;padding-right:14px!important}
+  .hero-meta{padding-left:36px!important;margin-top:18px!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px 10px!important;max-width:100%!important}
+  .hero-meta span{min-width:0!important;line-height:1.35!important}
+
+  /* Service chooser below the hero */
+  .hero-side{padding:34px 16px 36px!important;border-left:0!important;border-top:1px solid #333!important;max-width:100%!important;overflow:hidden!important}
+  .hero-side .marker{font-size:34px!important;line-height:1.08!important;max-width:100%!important}
+  .side-intro{max-width:100%!important;margin:10px 0 18px!important;font-size:12px!important;line-height:1.55!important}
+  .scribble{width:64%!important;margin-bottom:16px!important}
+  .service-chooser{max-width:100%!important}
+  .service-choice{grid-template-columns:34px minmax(0,1fr) 9px 34px!important;gap:7px!important;padding:14px 9px!important;min-width:0!important}
+  .service-choice .ico{font-size:21px!important}
+  .service-choice b{font-size:10px!important;line-height:1.25!important;overflow-wrap:anywhere!important}
+  .service-choice small{font-size:8px!important;line-height:1.35!important;overflow-wrap:anywhere!important}
+  .service-choice .arr{font-size:20px!important;gap:3px!important}
+  .service-live{padding:14px!important;max-width:100%!important}
+
+  /* Trust strip */
+  .proof-strip{max-width:100%!important;overflow:hidden!important}
+  .proof-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-width:100%!important}
+  .proof{padding:18px 7px!important;min-width:0!important}
+  .proof:nth-child(2){border-right:0!important}
+  .proof:nth-child(-n+2){border-bottom:1px solid #dedbd4!important}
+  .proof b{font-size:9px!important;line-height:1.25!important}
+  .proof small{font-size:7px!important;line-height:1.3!important}
+
+  /* Experience / Circuit of Trust */
+  .experience,.reviews,.projects,.cta{max-width:100%!important;overflow:hidden!important}
+  .experience{padding:62px 0!important}
+  .experience-grid,.reviews-grid,.cta-grid{grid-template-columns:1fr!important;gap:30px!important;max-width:100%!important}
+  .experience-copy{padding-left:0!important;min-width:0!important}
+  .experience-copy .marker,.reviews .marker,.cta .marker{font-size:clamp(36px,10.5vw,42px)!important;line-height:1.04!important;max-width:100%!important}
+  .experience-copy p{font-size:13px!important;line-height:1.65!important;margin:20px 0!important}
+  .experience-art{height:330px!important;max-width:100%!important;transform:none!important}
+  .experience-badges{left:14px!important;right:14px!important;bottom:14px!important;gap:7px!important}
+  .eb{padding:11px!important;min-width:0!important}
+  .eb strong{font-size:22px!important}
+  .eb small{font-size:7px!important;line-height:1.25!important}
+
+  .reviews{padding:62px 0!important}
+  .reviews-grid{gap:22px!important}
+  .reviews-note{font-size:12px!important;line-height:1.6!important;margin-top:14px!important}
+  .review-circuit{min-height:500px!important;max-width:100%!important;overflow:hidden!important}
+  .review-nodes{left:12px!important;top:38px!important;bottom:38px!important;width:62px!important}
+  .review-node{width:60px!important;gap:6px!important}
+  .review-node .node-dot{width:20px!important;height:20px!important}
+  .review-node b{font-size:7px!important;letter-spacing:.5px!important}
+  .circuit-line{left:41px!important;top:58px!important;bottom:58px!important}
+  .review-pulse{left:38px!important;top:55px!important}
+  .review-display{left:78px!important;right:12px!important;top:20px!important;bottom:20px!important;padding:22px 8px 22px 18px!important;min-width:0!important}
+  .review-display .quote{font-size:58px!important}
+  .review-display .review-text{font-size:16px!important;line-height:1.45!important;overflow-wrap:anywhere!important}
+  .review-display .review-author{font-size:9px!important;line-height:1.35!important;margin-top:17px!important}
+  .review-display .stars{font-size:14px!important;letter-spacing:3px!important;margin-top:12px!important}
+  .review-context{gap:6px!important;margin-top:14px!important}
+  .review-context span{padding:6px 7px!important;font-size:7px!important;letter-spacing:.5px!important}
+
+  /* Commitment / project cards */
+  .commit{grid-template-columns:1fr!important;min-height:0!important;max-width:100%!important}
+  .why,.stats{padding:44px 20px!important;min-width:0!important}
+  .why .marker,.stats .marker{font-size:36px!important;max-width:100%!important}
+  .checks{font-size:12px!important;gap:13px!important}
+  .stats-grid{margin-top:32px!important;gap:25px 18px!important}
+  .stat strong{font-size:40px!important}
+  .project-image{height:310px!important;max-width:100%!important}
+
+  .projects{padding:62px 0!important}
+  .section-head{grid-template-columns:1fr!important;gap:16px!important;margin-bottom:28px!important;max-width:100%!important}
+  .section-head .marker{font-size:40px!important;max-width:100%!important}
+  .section-head p{font-size:12px!important;line-height:1.6!important;max-width:100%!important}
+  .project-grid{grid-template-columns:1fr!important;gap:12px!important;max-width:100%!important}
+  .project-card,.project-card:first-child{grid-column:auto!important;height:270px!important;max-width:100%!important}
+  .project-card .caption{padding:60px 16px 16px!important}
+  .project-card b{font-size:23px!important}
+
+  /* Contact / request area */
+  .cta-grid{max-width:100%!important}
+  .cta-copy,.cta-center,.cta .form{padding:32px 18px!important;min-width:0!important}
+  .current-service b{font-size:20px!important;overflow-wrap:anywhere!important}
+  .contact-stat strong{font-size:22px!important}
+  .contact-stat.compact-pair{grid-template-columns:1fr!important}
+  .contact-stat.compact-pair > div + div{border-left:0!important;border-top:1px solid rgba(0,0,0,.13)!important;padding-left:0!important;padding-top:10px!important}
+  .form-grid{grid-template-columns:1fr!important;max-width:100%!important}
+  .full{grid-column:auto!important}
+  input,select,textarea{max-width:100%!important;min-width:0!important}
+
+  .footer-grid{justify-content:center!important;text-align:center!important;gap:18px!important}
+  .footer .logo{margin:0!important}
+  .footer-links{flex-wrap:wrap!important;justify-content:center!important;gap:12px!important}
+
+  /* Keep immersive motion inside the phone viewport without masking the desktop composition */
+  .hero-main,.hero-side,.proof-strip,.experience,.reviews,.commit,.projects,.cta,
+  .experience-art,.review-circuit,.project-image,.project-card{overflow-x:hidden!important}
 }
 @media (max-width:390px){
-  .hero-left{padding-left:14px!important;padding-right:14px!important}
-  .hero h1{font-size:42px!important}
+  .container{width:calc(100% - 22px)!important}
+  .logo-copy small{display:none!important}
+  .hero-main{min-height:625px!important}
+  .hero-copy{left:14px!important;right:14px!important}
+  .hero h1{font-size:42px!important;padding-left:32px!important}
+  .hero-bolt{font-size:56px!important}
+  .hero-sub,.hero-actions,.hero-meta{padding-left:32px!important}
   .hero-meta{grid-template-columns:1fr!important}
-  .hero-meta div:last-child{grid-column:auto!important}
-  .metrics{grid-template-columns:1fr!important}
-  .job-tabs{grid-template-columns:1fr!important}
+  .service-choice{grid-template-columns:31px minmax(0,1fr) 8px 30px!important;padding-left:7px!important;padding-right:7px!important}
+  .proof{padding-left:5px!important;padding-right:5px!important}
+  .experience-badges{grid-template-columns:1fr 1fr!important}
+  .review-circuit{min-height:520px!important}
+  .review-display{left:72px!important;right:8px!important;padding-left:14px!important}
+  .review-display .review-text{font-size:15px!important}
 }
 `;
   const liveTitle=/Live Current/i;
   let boundFrame=null;
+
+  function isLiveCurrent(shellDoc,themeFrame){
+    try{
+      const frameLabel=themeFrame.getAttribute('title')||'';
+      const shellHash=shellDoc.defaultView?.location?.hash||'';
+      const selected=shellDoc.querySelector('[data-id="2"][aria-pressed="true"],[data-theme="2"][aria-pressed="true"],[data-key="2"][aria-selected="true"]');
+      return liveTitle.test(frameLabel)||/direction-2|theme-2/i.test(shellHash)||!!selected;
+    }catch(e){return false}
+  }
+
   function applyPatch(){
     try{
       const shellDoc=review.contentDocument;
@@ -94,38 +176,47 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0c0d}
         boundFrame=themeFrame;
         themeFrame.addEventListener('load',()=>setTimeout(applyPatch,0));
       }
+      if(!isLiveCurrent(shellDoc,themeFrame)) return;
       const doc=themeFrame.contentDocument;
-      if(!doc||!doc.head||!liveTitle.test(doc.title||'')) return;
+      if(!doc||!doc.head) return;
       let style=doc.getElementById(PATCH_ID);
       if(!style){
         style=doc.createElement('style');
         style.id=PATCH_ID;
-        style.textContent=MOBILE_CSS;
         doc.head.appendChild(style);
       }
-    }catch(e){console.warn('Gregory Electric mobile format patch:',e)}
+      if(style.textContent!==MOBILE_CSS) style.textContent=MOBILE_CSS;
+    }catch(e){console.warn('Gregory Electric Live Current mobile patch:',e)}
   }
+
   function bindReview(){
     try{
       const doc=review.contentDocument;
       if(!doc) return;
       const frame=doc.getElementById('frame');
-      if(frame && frame!==boundFrame){
+      if(frame&&frame!==boundFrame){
         boundFrame=frame;
         frame.addEventListener('load',()=>setTimeout(applyPatch,0));
       }
       applyPatch();
     }catch(e){}
   }
-  review.addEventListener('load',()=>{bindReview();setTimeout(bindReview,120);setTimeout(bindReview,500)});
+
+  review.addEventListener('load',()=>{
+    bindReview();
+    setTimeout(bindReview,100);
+    setTimeout(bindReview,350);
+    setTimeout(bindReview,900);
+  });
   review.src='/review-locked.html'+(location.hash||'');
+
   setInterval(()=>{
     try{
       bindReview();
       const h=review.contentWindow.location.hash;
-      if(h && h!==location.hash) history.replaceState(null,'',h);
+      if(h&&h!==location.hash) history.replaceState(null,'',h);
     }catch(e){}
-  },600);
+  },250);
 })();
 </script>
 </body>

@@ -94,9 +94,8 @@ html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0b0c0d}
         boundFrame=themeFrame;
         themeFrame.addEventListener('load',()=>setTimeout(applyPatch,0));
       }
-      if(!liveTitle.test(themeFrame.title||'')) return;
       const doc=themeFrame.contentDocument;
-      if(!doc||!doc.head) return;
+      if(!doc||!doc.head||!liveTitle.test(doc.title||'')) return;
       let style=doc.getElementById(PATCH_ID);
       if(!style){
         style=doc.createElement('style');

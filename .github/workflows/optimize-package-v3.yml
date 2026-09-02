@@ -1,0 +1,50 @@
+name: Optimize Gregory Package V3
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/optimize-package-v3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pillow requests
+      - name: Build exact package
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+          y=Path('.github/workflows/optimize-package-v2.yml').read_text('utf-8')
+          lines=y.splitlines(); capture=False; code=[]
+          for line in lines:
+              if "cat > /tmp/build.py <<'PY'" in line:
+                  capture=True; continue
+              if capture and line.strip()=='PY': break
+              if capture: code.append(line)
+          src=textwrap.dedent('\n'.join(code))+'\n'
+          marker="boards=sorted(list(raw.rglob('design-*.png'))+list(raw.rglob('design-*.jpg'))+list(raw.rglob('design-*.jpeg')))"
+          inject="""# Recover the six exact approved embedded logo boards from the locked client-review source.\nrt=(R/'review-locked.html').read_text('utf-8')\nlm=re.search(r'const\\s+LOGOS\\s*=\\s*(\\[.*?\\])\\s*;',rt,re.S)\nif not lm: raise SystemExit('Embedded LOGOS array not found in locked review')\nlogo_uris=json.loads(lm.group(1))\nif len(logo_uris)!=6: raise SystemExit(f'Expected 6 embedded logo boards, found {len(logo_uris)}')\nld=raw/'logo-designs';ld.mkdir(parents=True,exist_ok=True)\nfor i,uri in enumerate(logo_uris,1):\n  data=base64.b64decode(uri.split(',',1)[1]);im=Image.open(io.BytesIO(data));im.load();im.save(ld/f'design-{i:02d}.png','PNG',optimize=True)\n"""+marker
+          if marker not in src: raise SystemExit('V2 board marker not found')
+          src=src.replace(marker,inject)
+          Path('/tmp/build.py').write_text(src,'utf-8')
+          PY
+          python /tmp/build.py | tee optimization-summary.json
+      - name: Upload finished package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gregory-Electric-Optimized-Package
+          path: Gregory-Electric-Optimized-Package.zip
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gregory-Electric-Optimization-Summary
+          path: optimization-summary.json
+          retention-days: 7

@@ -1,0 +1,146 @@
+name: Optimize Gregory Package V2
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/optimize-package-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: python -m pip install --disable-pip-version-check pillow requests
+      - name: Build and validate
+        shell: bash
+        run: |
+          cat > /tmp/build.py <<'PY'
+          import base64,hashlib,io,json,re,shutil,zipfile
+          from pathlib import Path
+          from urllib.parse import quote,urlsplit
+          import requests
+          from PIL import Image
+          R=Path.cwd(); SRC=R/'Gregory-Electric-GitHub-Vercel-FINAL.zip'; W=R/'_gepack'; P=W/'package'; OUT=R/'Gregory-Electric-Optimized-Package.zip'
+          shutil.rmtree(W,ignore_errors=True); W.mkdir(); raw=W/'raw'; raw.mkdir(); P.mkdir()
+          with zipfile.ZipFile(SRC) as z:z.extractall(raw)
+          shell=max(raw.rglob('index.html'),key=lambda p:p.stat().st_size); txt=shell.read_text('utf-8')
+          m=re.search(r'const\s+P\s*=\s*(\{.*?\})\s*;',txt,re.S)
+          if not m: raise SystemExit('Theme payloads not found')
+          obj=json.loads(m.group(1)); themes={k:base64.b64decode(obj[k]).decode('utf-8') for k in ('1','2','3')}
+          names={'1':'theme-01-refined-current','2':'theme-02-live-current','3':'theme-03-power-systems'}
+          S=requests.Session(); S.headers.update({'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0.0.0 Safari/537.36','Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8','Accept-Language':'en-US,en;q=0.9'})
+          def hname(u,e):return hashlib.sha256(u.encode()).hexdigest()[:16]+e
+          def fetch_img(u):
+            urls=[u,'https://images.weserv.nl/?url='+quote(u,safe='')+'&n=-1']
+            last=None
+            for x in urls:
+              try:
+                host=urlsplit(u).scheme+'://'+urlsplit(u).netloc+'/'
+                r=S.get(x,headers={'Referer':host},timeout=60,allow_redirects=True);r.raise_for_status();data=r.content
+                Image.open(io.BytesIO(data)).verify();return data
+              except Exception as e:last=e
+            raise RuntimeError(f'Unable to retrieve exact image {u}: {last}')
+          def save_webp(data,path,maxdim,q):
+            im=Image.open(io.BytesIO(data));im.load();w,h=im.size;s=min(1,maxdim/max(w,h))
+            if s<1:im=im.resize((round(w*s),round(h*s)),Image.Resampling.LANCZOS)
+            alpha='A' in im.getbands() or 'transparency' in im.info
+            if alpha:
+              if im.mode!='RGBA':im=im.convert('RGBA')
+              im.save(path,'WEBP',lossless=True,method=6)
+            else:
+              if im.mode!='RGB':im=im.convert('RGB')
+              im.save(path,'WEBP',quality=q,method=6,optimize=True)
+          def fonts(html,td):
+            pat=re.compile(r"@import\s+url\((['\"]?)(https://fonts\.googleapis\.com/[^)'\"]+)\1\)\s*;?")
+            for mm in list(pat.finditer(html)):
+              r=S.get(mm.group(2),headers={'Accept':'text/css,*/*;q=0.1'},timeout=45);r.raise_for_status();css=r.text;fd=td/'assets/fonts';fd.mkdir(parents=True,exist_ok=True)
+              for fu in sorted(set(re.findall(r'url\((https://fonts\.gstatic\.com/[^)]+)\)',css))):
+                rr=S.get(fu,timeout=45);rr.raise_for_status();ext=Path(urlsplit(fu).path).suffix or '.woff2';fn=hname(fu,ext);(fd/fn).write_bytes(rr.content);css=css.replace(fu,'assets/fonts/'+fn)
+              html=html.replace(mm.group(0),css)
+            return html
+          def assets(html,td):
+            ad=td/'assets';ad.mkdir(parents=True,exist_ok=True)
+            css=set(re.findall(r'url\((?:[\'\"]?)(https?://[^)\'\"]+)',html)); src=set(re.findall(r'(?:src|poster)=[\'\"](https?://[^\'\"]+)',html)); srcset=set()
+            for val in re.findall(r'srcset=[\'\"]([^\'\"]+)',html):
+              srcset.update(x.strip().split()[0] for x in val.split(',') if x.strip().startswith('http'))
+            for u0 in sorted(css|src|srcset):
+              u=u0.replace('&amp;','&')
+              if 'fonts.googleapis.com' in u or 'fonts.gstatic.com' in u:continue
+              data=fetch_img(u)
+              # SVGs are preserved only when the server actually returns SVG bytes
+              if data.lstrip().startswith(b'<svg') or data.lstrip().startswith(b'<?xml') and b'<svg' in data[:500]:
+                fn=hname(u,'.svg');(ad/fn).write_bytes(data);rel='assets/'+fn
+              else:
+                fn=hname(u,'.webp');save_webp(data,ad/fn,2400 if u0 in css else 2000,78);rel='assets/'+fn
+              html=html.replace(u0,rel).replace(u,rel)
+            return html
+          for k,h in themes.items():
+            td=P/'websites'/names[k];td.mkdir(parents=True);h=fonts(h,td);h=assets(h,td);(td/'index.html').write_text(h,'utf-8')
+          boards=sorted(list(raw.rglob('design-*.png'))+list(raw.rglob('design-*.jpg'))+list(raw.rglob('design-*.jpeg')))
+          if len(boards)!=6:raise SystemExit(f'Expected 6 brand boards, found {len(boards)}')
+          bd=P/'brand-boards';bd.mkdir()
+          for i,b in enumerate(boards,1):
+            im=Image.open(b);im.load();w,h=im.size;tw=min(2000,max(1600,w));s=tw/w
+            if s!=1:im=im.resize((tw,round(h*s)),Image.Resampling.LANCZOS)
+            if 'A' in im.getbands():
+              if im.mode!='RGBA':im=im.convert('RGBA')
+              im.save(bd/f'brand-board-{i:02d}.webp','WEBP',lossless=True,method=6)
+            else:
+              if im.mode!='RGB':im=im.convert('RGB')
+              im.save(bd/f'brand-board-{i:02d}.webp','WEBP',quality=84,method=6,optimize=True)
+          boardimgs=''.join(f'<button class="board"><img src="brand-boards/brand-board-{i:02d}.webp" alt="Brand board {i:02d}"></button>' for i in range(1,7))
+          wrapper='''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Gregory Electric — Client Review</title><style>*{box-sizing:border-box}html,body,#app{margin:0;width:100%;height:100%;overflow:hidden;background:#090a0b;font-family:Inter,system-ui,sans-serif}iframe{width:100%;height:100%;border:0;background:#fff}.toggle{position:fixed;z-index:10;right:0;top:50%;transform:translateY(-50%);width:46px;height:154px;background:#111315;color:#fff;border:1px solid #ffffff26;border-right:0;border-radius:12px 0 0 12px}.toggle span{writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;font-weight:800;letter-spacing:.14em}.panel{position:fixed;z-index:9;right:-310px;top:0;width:min(310px,84vw);height:100%;background:#111315;color:#fff;padding:18px;transition:.25s}.open .panel{right:0}.open .toggle{right:min(310px,84vw)}.panel h2{margin:6px 0 16px}.dir{display:block;width:100%;margin:8px 0;padding:14px;border:1px solid #ffffff26;background:#171a1c;color:white;text-align:left}.dir.on{border-color:#d9a62e;background:#202326}.gallery{position:fixed;inset:0;background:#ece9e2;overflow:auto;display:none;padding:22px;z-index:5}.gallery.on{display:block}.grid{max-width:1300px;margin:auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.board{border:0;padding:0;background:white}.board img{display:block;width:100%;height:auto}@media(max-width:680px){.grid{grid-template-columns:1fr}}</style></head><body><div id="app"><iframe id="frame" src="websites/theme-01-refined-current/index.html"></iframe><section id="gallery" class="gallery"><div class="grid">BOARDS</div></section><button id="toggle" class="toggle"><span>Design Switcher</span></button><aside class="panel"><small>GREGORY ELECTRIC / CLIENT REVIEW</small><h2>Explore the directions</h2><button class="dir on" data-src="websites/theme-01-refined-current/index.html">01 · Refined Current</button><button class="dir" data-src="websites/theme-02-live-current/index.html">02 · Live Current</button><button class="dir" data-src="websites/theme-03-power-systems/index.html">03 · Power Systems</button><button class="dir" data-gallery="1">04 · Logo Designs</button></aside></div><script>const a=document.getElementById('app'),f=document.getElementById('frame'),g=document.getElementById('gallery'),ds=[...document.querySelectorAll('.dir')];toggle.onclick=()=>a.classList.toggle('open');ds.forEach(b=>b.onclick=()=>{ds.forEach(x=>x.classList.remove('on'));b.classList.add('on');if(b.dataset.gallery){g.classList.add('on');f.style.visibility='hidden'}else{g.classList.remove('on');f.style.visibility='visible';f.src=b.dataset.src}a.classList.remove('open')});</script></body></html>'''.replace('BOARDS',boardimgs)
+          (P/'index.html').write_text(wrapper,'utf-8')
+          # validation
+          ws=sorted((P/'websites').glob('*/index.html'));bs=sorted((P/'brand-boards').glob('brand-board-*.webp'));files=[x for x in P.rglob('*') if x.is_file()];fails=[]
+          if len(ws)!=3:fails.append(f'websites={len(ws)}')
+          if len(bs)!=6:fails.append(f'brand_boards={len(bs)}')
+          if len(files)>500:fails.append(f'files={len(files)} > 500')
+          exp=sum(x.stat().st_size for x in files); largest=max(x.stat().st_size for x in files)
+          if exp>=70*1024*1024:fails.append(f'expanded={exp}')
+          if largest>=20*1024*1024:fails.append(f'largest={largest}')
+          if len({hashlib.sha256(x.read_bytes()).hexdigest() for x in ws})!=3:fails.append('themes not distinct')
+          for hp in [P/'index.html']+ws:
+            h=hp.read_text('utf-8')
+            if re.search(r'(?:src|poster)=[\'\"]https?://',h) or re.search(r'url\([\'\"]?https?://',h) or re.search(r'srcset=[\'\"][^\'\"]*https?://',h):fails.append('remote asset ref in '+str(hp.relative_to(P)))
+            for u in re.findall(r'(?:src|poster)=[\'\"]([^\'\"]+)',h):
+              if u.startswith('data:'):continue
+              if not (hp.parent/u.split('?')[0].split('#')[0]).exists():fails.append('missing '+u+' in '+str(hp.relative_to(P)))
+          for b in bs:
+            try:
+              with Image.open(b) as im:im.verify()
+            except Exception as e:fails.append('bad board '+b.name+': '+str(e))
+          if fails:raise SystemExit('\n'.join(fails))
+          report={'websites':3,'brand_boards':6,'files':len(files)+1,'expanded_bytes':exp,'largest_file_bytes':largest}
+          (P/'validation-report.txt').write_text(json.dumps(report,indent=2)+'\nSTATUS: PRE-ZIP PASS\n','utf-8')
+          if OUT.exists():OUT.unlink()
+          with zipfile.ZipFile(OUT,'w',zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+            for x in sorted(P.rglob('*')):
+              if x.is_file():z.write(x,x.relative_to(P))
+          cs=OUT.stat().st_size
+          if cs>=35*1024*1024:raise SystemExit(f'compressed={cs} >=35MB')
+          check=W/'clean';check.mkdir()
+          with zipfile.ZipFile(OUT) as z:
+            if z.testzip():raise SystemExit('ZIP CRC failed')
+            z.extractall(check)
+          for rel in ['index.html','websites/theme-01-refined-current/index.html','websites/theme-02-live-current/index.html','websites/theme-03-power-systems/index.html']:
+            if not (check/rel).is_file():raise SystemExit('clean extraction missing '+rel)
+          report.update({'compressed_bytes':cs,'status':'PASS'});print(json.dumps(report))
+          PY
+          python /tmp/build.py | tee optimization-summary.json
+      - name: Upload finished package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gregory-Electric-Optimized-Package
+          path: Gregory-Electric-Optimized-Package.zip
+          if-no-files-found: error
+          retention-days: 7
+      - name: Upload summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gregory-Electric-Optimization-Summary
+          path: optimization-summary.json
+          retention-days: 7
